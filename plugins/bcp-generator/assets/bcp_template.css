@@ -1,0 +1,388 @@
+/* BCP文書 PDF用スタイルシート */
+/* WeasyPrintで使用。A4縦向き、印刷対応。 */
+
+@page {
+    size: A4;
+    margin: 20mm 18mm 25mm 18mm;
+
+    @bottom-center {
+        content: counter(page) " / " counter(pages);
+        font-size: 9pt;
+        color: #666;
+    }
+
+    @bottom-right {
+        content: "機密";
+        font-size: 8pt;
+        color: #999;
+    }
+}
+
+@page :first {
+    margin-top: 0;
+    @bottom-center { content: none; }
+    @bottom-right { content: none; }
+}
+
+/* ===== 基本設定 ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Noto Sans JP", "Hiragino Sans", "Meiryo", sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.7;
+    color: #1a1a1a;
+}
+
+/* ===== 表紙 ===== */
+.cover-page {
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    text-align: center;
+    padding: 40mm 20mm;
+}
+
+.cover-page h1 {
+    font-size: 28pt;
+    font-weight: 700;
+    color: #1a3a5c;
+    margin-bottom: 8mm;
+    letter-spacing: 0.1em;
+}
+
+.cover-page .company-name {
+    font-size: 18pt;
+    color: #2c5282;
+    margin-bottom: 15mm;
+    font-weight: 500;
+}
+
+.cover-page .meta-info {
+    font-size: 11pt;
+    color: #555;
+    line-height: 2.0;
+}
+
+.cover-page .meta-info p {
+    margin: 2mm 0;
+}
+
+.cover-page .version-badge {
+    display: inline-block;
+    background: #e8f0fe;
+    color: #1a3a5c;
+    padding: 2mm 6mm;
+    border-radius: 3mm;
+    font-size: 10pt;
+    margin-top: 10mm;
+}
+
+/* ===== 目次 ===== */
+.toc-page {
+    page-break-after: always;
+}
+
+.toc-page h2 {
+    font-size: 16pt;
+    color: #1a3a5c;
+    border-bottom: 2px solid #1a3a5c;
+    padding-bottom: 3mm;
+    margin-bottom: 8mm;
+}
+
+.toc-list {
+    list-style: none;
+    padding: 0;
+}
+
+.toc-list li {
+    padding: 2mm 0;
+    border-bottom: 1px dotted #ccc;
+    display: flex;
+    justify-content: space-between;
+}
+
+.toc-list li .toc-section {
+    font-weight: 500;
+}
+
+.toc-list li .toc-page-num {
+    color: #666;
+    min-width: 20mm;
+    text-align: right;
+}
+
+.toc-list .toc-level2 {
+    padding-left: 8mm;
+    font-size: 9.5pt;
+    color: #444;
+}
+
+/* ===== セクション ===== */
+.section {
+    page-break-inside: avoid;
+    margin-bottom: 10mm;
+}
+
+h2.section-title {
+    font-size: 16pt;
+    color: #1a3a5c;
+    border-bottom: 2.5px solid #1a3a5c;
+    padding-bottom: 2mm;
+    margin-top: 12mm;
+    margin-bottom: 6mm;
+    page-break-after: avoid;
+}
+
+h3 {
+    font-size: 13pt;
+    color: #2c5282;
+    margin-top: 8mm;
+    margin-bottom: 4mm;
+    border-left: 4px solid #2c5282;
+    padding-left: 4mm;
+    page-break-after: avoid;
+}
+
+h4 {
+    font-size: 11pt;
+    color: #333;
+    margin-top: 5mm;
+    margin-bottom: 3mm;
+    font-weight: 600;
+}
+
+p {
+    margin-bottom: 3mm;
+    text-align: justify;
+}
+
+/* ===== テーブル ===== */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4mm 0 6mm 0;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+}
+
+th, td {
+    border: 1px solid #b0b0b0;
+    padding: 2.5mm 3mm;
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    background-color: #1a3a5c;
+    color: white;
+    font-weight: 600;
+    font-size: 9pt;
+}
+
+tr:nth-child(even) {
+    background-color: #f5f7fa;
+}
+
+/* リスク表用 */
+.risk-high {
+    background-color: #fee2e2;
+    color: #991b1b;
+    font-weight: 600;
+}
+
+.risk-medium {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.risk-low {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+/* ===== リスクマトリクス ===== */
+.risk-matrix {
+    margin: 5mm 0;
+}
+
+.risk-matrix table {
+    width: auto;
+    margin: 0 auto;
+}
+
+.risk-matrix th {
+    text-align: center;
+    min-width: 22mm;
+}
+
+.risk-matrix td {
+    text-align: center;
+    min-width: 22mm;
+    height: 12mm;
+    vertical-align: middle;
+}
+
+.risk-cell-critical {
+    background-color: #dc2626;
+    color: white;
+    font-weight: 700;
+}
+
+.risk-cell-high {
+    background-color: #f97316;
+    color: white;
+    font-weight: 600;
+}
+
+.risk-cell-medium {
+    background-color: #fbbf24;
+    color: #1a1a1a;
+}
+
+.risk-cell-low {
+    background-color: #86efac;
+    color: #1a1a1a;
+}
+
+/* ===== リスト ===== */
+ul, ol {
+    margin: 3mm 0 3mm 8mm;
+}
+
+li {
+    margin-bottom: 1.5mm;
+}
+
+/* ===== アラートボックス ===== */
+.alert {
+    border-radius: 2mm;
+    padding: 4mm 5mm;
+    margin: 4mm 0;
+    page-break-inside: avoid;
+}
+
+.alert-danger {
+    background-color: #fee2e2;
+    border-left: 4px solid #dc2626;
+    color: #991b1b;
+}
+
+.alert-warning {
+    background-color: #fef3c7;
+    border-left: 4px solid #f59e0b;
+    color: #92400e;
+}
+
+.alert-info {
+    background-color: #dbeafe;
+    border-left: 4px solid #3b82f6;
+    color: #1e40af;
+}
+
+.alert-success {
+    background-color: #d1fae5;
+    border-left: 4px solid #10b981;
+    color: #065f46;
+}
+
+/* ===== チェックリスト ===== */
+.checklist {
+    list-style: none;
+    padding: 0;
+}
+
+.checklist li {
+    padding: 2mm 0 2mm 7mm;
+    position: relative;
+}
+
+.checklist li::before {
+    content: "☐";
+    position: absolute;
+    left: 0;
+    font-size: 11pt;
+}
+
+/* ===== 記入欄 ===== */
+.fill-in {
+    border: 1px solid #999;
+    border-radius: 1.5mm;
+    padding: 2mm 3mm;
+    min-height: 8mm;
+    background-color: #fafafa;
+    margin: 2mm 0;
+    color: #888;
+    font-style: italic;
+}
+
+.fill-in-inline {
+    border-bottom: 1px solid #666;
+    padding: 0 3mm;
+    min-width: 40mm;
+    display: inline-block;
+    color: #888;
+}
+
+/* ===== 連絡網テーブル ===== */
+.contact-table td:nth-child(2),
+.contact-table td:nth-child(3) {
+    color: #888;
+    font-style: italic;
+}
+
+/* ===== フッター/免責 ===== */
+.disclaimer {
+    font-size: 8.5pt;
+    color: #666;
+    border-top: 1px solid #ccc;
+    padding-top: 4mm;
+    margin-top: 10mm;
+    line-height: 1.5;
+}
+
+/* ===== 改ページ制御 ===== */
+.page-break {
+    page-break-before: always;
+}
+
+.no-break {
+    page-break-inside: avoid;
+}
+
+/* ===== AI分析マーク ===== */
+.ai-analysis {
+    background-color: #f0f4ff;
+    border: 1px solid #93c5fd;
+    border-radius: 3mm;
+    padding: 4mm 5mm;
+    margin: 4mm 0;
+}
+
+.ai-analysis::before {
+    content: "AI分析";
+    display: inline-block;
+    background: #3b82f6;
+    color: white;
+    font-size: 8pt;
+    padding: 0.5mm 3mm;
+    border-radius: 1.5mm;
+    margin-bottom: 2mm;
+    font-weight: 600;
+}
+
+/* ===== 印刷対応 ===== */
+@media print {
+    body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}

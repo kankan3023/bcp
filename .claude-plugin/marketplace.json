@@ -1,0 +1,20 @@
+{
+  "name": "bcp-generator-marketplace",
+  "owner": {
+    "name": "kaede"
+  },
+  "metadata": {
+    "description": "企業WebサイトURLからBCP（事業継続計画）を自動生成するClaude Codeスキル。",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "bcp-generator",
+      "source": "./plugins/bcp-generator",
+      "description": "企業URLを入力するだけで、業務分析→ハザードマップ調査→BCP文書生成をワンストップで実行し、PDFとして出力します。",
+      "version": "0.1.0",
+      "category": "productivity",
+      "tags": ["bcp", "disaster", "business-continuity", "pdf", "hazard"]
+    }
+  ]
+}
