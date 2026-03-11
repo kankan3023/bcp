@@ -17,6 +17,7 @@ bcp/
     ├── scripts/
     │   ├── geocode.py                 ← 住所→座標（国土地理院+Nominatim）
     │   ├── hazard_lookup.py           ← 地点ハザード分析（国交省タイル）
+    │   ├── earthquake_lookup.py       ← 地震リスク分析（J-SHIS API）
     │   └── html_to_pdf.py            ← HTML→PDF（WeasyPrint）
     ├── assets/bcp_template.css        ← PDF用CSSテンプレート
     ├── references/
@@ -36,6 +37,9 @@ python3 plugins/bcp-generator/scripts/geocode.py "東京都渋谷区神南1-1-1"
 
 # ハザード分析テスト
 python3 plugins/bcp-generator/scripts/hazard_lookup.py --lat 35.66 --lng 139.70 --output /tmp/test_hazard.json
+
+# 地震リスク分析テスト（J-SHIS API）
+python3 plugins/bcp-generator/scripts/earthquake_lookup.py --lat 35.66 --lng 139.70 --output /tmp/test_earthquake.json
 
 # HTML→PDF変換
 python3 plugins/bcp-generator/scripts/html_to_pdf.py /tmp/bcp_output.html /tmp/output.pdf
