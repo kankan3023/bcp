@@ -128,7 +128,6 @@ body {
 
 /* ===== セクション ===== */
 .section {
-    page-break-inside: avoid;
     margin-bottom: 10mm;
 }
 
@@ -139,6 +138,7 @@ h2.section-title {
     padding-bottom: 2mm;
     margin-top: 12mm;
     margin-bottom: 6mm;
+    page-break-before: always;
     page-break-after: avoid;
 }
 
@@ -350,9 +350,8 @@ li {
 }
 
 /* ===== 改ページ制御 ===== */
-.page-break {
-    page-break-before: always;
-}
+/* h2.section-title に page-break-before: always を設定済み。
+   空の .page-break div は使わないこと（白紙ページの原因になる）。 */
 
 .no-break {
     page-break-inside: avoid;

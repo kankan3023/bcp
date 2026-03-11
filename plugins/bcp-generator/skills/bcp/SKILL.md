@@ -179,6 +179,8 @@ python3 ${CLAUDE_SKILL_DIR}/../scripts/earthquake_lookup.py --lat {緯度} --lng
 
 8. **HTMLの文字コード**: `<meta charset="UTF-8">` を必ず含む
 
+9. **改ページ制御**: 空の `<div class="page-break"></div>` は**絶対に使わないこと**（白紙ページが生成される）。セクション見出し `<h2 class="section-title">` に `page-break-before: always` がCSS側で設定済みなので、h2タグを置くだけで自動改ページされる
+
 ### Write ツールで出力
 ```
 Write /tmp/bcp_output.html に完全なHTMLを出力
