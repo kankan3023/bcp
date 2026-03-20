@@ -4,11 +4,14 @@
 kitaku-routeプロジェクトのhazard.pyをベースに地点分析版として再構築。
 """
 
+import hashlib
 import io
 import json
 import math
+import os
 import sys
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 
 try:
     from PIL import Image
@@ -49,6 +52,8 @@ HAZARD_LAYERS = {
 
 ANALYSIS_ZOOM = 14
 
+TILE_CACHE_DIR = "/tmp/bcp_tile_cache"
+
 _tile_cache = {}
 
 
@@ -71,15 +76,34 @@ def latlng_to_pixel_in_tile(lat, lng, zoom):
 
 
 def fetch_tile(url):
-    """タイルを取得（キャッシュ付き）"""
+    """タイルを取得（メモリ+ファイルキャッシュ付き）"""
     if url in _tile_cache:
         return _tile_cache[url]
+
+    # ファイルキャッシュチェック
+    cache_key = hashlib.md5(url.encode()).hexdigest()
+    cache_path = os.path.join(TILE_CACHE_DIR, cache_key)
+    try:
+        if os.path.exists(cache_path):
+            with open(cache_path, "rb") as f:
+                data = f.read()
+            _tile_cache[url] = data
+            return data
+    except Exception:
+        pass
 
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "bcp-generator-skill/0.1"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = resp.read()
         _tile_cache[url] = data
+        # ファイルキャッシュに保存
+        try:
+            os.makedirs(TILE_CACHE_DIR, exist_ok=True)
+            with open(cache_path, "wb") as f:
+                f.write(data)
+        except Exception:
+            pass
         return data
     except Exception:
         _tile_cache[url] = None
@@ -153,6 +177,15 @@ def analyze_point(lat, lng, grid_size=5):
     Returns:
         dict: 各ハザードレイヤーの分析結果
     """
+    # 全レイヤーの中心タイルを並列プリフェッチ（後続のcheck_hazard_at_pointでキャッシュヒット）
+    cx, cy = latlng_to_tile(lat, lng, ANALYSIS_ZOOM)
+    prefetch_urls = [
+        layer_info["url"].format(z=ANALYSIS_ZOOM, x=cx, y=cy)
+        for layer_info in HAZARD_LAYERS.values()
+    ]
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        list(executor.map(fetch_tile, prefetch_urls))
+
     # グリッド間隔: zoom14のタイルは約10km四方、256px
     # 1ピクセル ≈ 40m、5x5グリッドで200m間隔 → 約1km四方
     offset_deg = 0.001  # 約100m間隔

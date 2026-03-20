@@ -100,31 +100,40 @@ python3 ${CLAUDE_SKILL_DIR}/../scripts/geocode.py "{住所}"
 
 ---
 
-## Step 3: ハザードデータ収集
+## Step 3: ハザードデータ収集（並列実行必須）
 
-### 3a. ハザードマップタイル分析
+**重要: 以下の3a/3b/3dは3つの並列Bash呼び出しとして同時実行すること。3c/3eのWebSearchも同時に開始する。**
+**合計5系統を同時並列で実行し、全完了を待つ。逐次実行は禁止。**
 
+### 並列グループA: 3つのBashコマンドを同時実行
+
+以下の3コマンドを **1つのメッセージ内で3つの並列Bash呼び出し** として実行する:
+
+**3a. ハザードマップタイル分析:**
 ```bash
 python3 ${CLAUDE_SKILL_DIR}/../scripts/hazard_lookup.py --lat {緯度} --lng {経度} --output /tmp/bcp_hazard.json
 ```
 
-出力はJSON。洪水・土砂災害・津波の4レイヤーを分析。
-
-### 3b. 地震リスク定量分析（J-SHIS API）
-
+**3b. 地震リスク定量分析（J-SHIS API）:**
 ```bash
 python3 ${CLAUDE_SKILL_DIR}/../scripts/earthquake_lookup.py --lat {緯度} --lng {経度} --output /tmp/bcp_earthquake.json
 ```
 
-出力はJSON。以下のデータを自動取得:
-- **地震発生確率**: 30年以内に震度5弱/5強/6弱/6強以上となる確率（%）
-- **表層地盤**: 微地形分類、AVS30（30m平均S波速度）、地盤増幅率、揺れやすさ
-- **液状化リスク**: 微地形分類とAVS30に基づく簡易判定
-- **想定震度**: 確率データから「発生しうる震度レンジ」を推定
+**3d. ハザードマップ画像生成:**
+```bash
+python3 ${CLAUDE_SKILL_DIR}/../scripts/generate_hazard_map.py --lat {緯度} --lng {経度} --output /tmp/bcp_hazard_map.png --base64
+```
 
-**3aと3bは並行実行すること。**
+3dは国土地理院の標準地図に洪水・土砂・津波のハザードレイヤーを重ね合わせたPNG画像を生成する。
+`--base64` フラグにより、標準出力にBase64 data URI（`data:image/png;base64,...`）が出力される。
+**この出力文字列をそのまま保持し、Step 6のHTML生成時に `<img src="{data URI}">` として埋め込むこと。**
+これによりHTMLとPDFが画像を内包した自己完結ファイルになる。
 
-### 3c. 広域リスク情報・自治体防災情報をWebSearchで収集
+3aと3dはファイルキャッシュ（`/tmp/bcp_tile_cache/`）を共有し、タイルの二重取得を回避する。
+
+### 並列グループB: WebSearch（グループAと同時に開始）
+
+**3c. 広域リスク情報・自治体防災情報をWebSearchで収集**
 
 以下を **並行で** WebSearch:
 1. 「{自治体名} 地震被害想定 震度」
@@ -144,7 +153,7 @@ python3 ${CLAUDE_SKILL_DIR}/../scripts/earthquake_lookup.py --lat {緯度} --lng
 
 → これらのURLは Step 6 で付録「自治体防災リンク集」として掲載する。
 
-### 3e. 業界別BCP・防災情報の収集
+**3e. 業界別BCP・防災情報の収集**
 
 以下を **並行で** WebSearch:
 1. 「{業種} 業界団体 BCP ガイドライン」
@@ -164,18 +173,17 @@ python3 ${CLAUDE_SKILL_DIR}/../scripts/earthquake_lookup.py --lat {緯度} --lng
 
 **見つからない場合:** 業界固有の情報がなくても中小企業庁BCPガイドラインで補完し、完走する。
 
-### 3d. ハザードマップ画像生成
+### 各コマンドの出力データ
 
-```bash
-python3 ${CLAUDE_SKILL_DIR}/../scripts/generate_hazard_map.py --lat {緯度} --lng {経度} --output /tmp/bcp_hazard_map.png --base64
-```
+**3a出力** (JSON): 洪水・土砂災害・津波の4レイヤー分析結果
 
-国土地理院の標準地図に洪水・土砂・津波のハザードレイヤーを重ね合わせたPNG画像を生成する。
-`--base64` フラグにより、標準出力にBase64 data URI（`data:image/png;base64,...`）が出力される。
-**この出力文字列をそのまま保持し、Step 6のHTML生成時に `<img src="{data URI}">` として埋め込むこと。**
-これによりHTMLとPDFが画像を内包した自己完結ファイルになる。
+**3b出力** (JSON): 以下のデータを自動取得:
+- **地震発生確率**: 30年以内に震度5弱/5強/6弱/6強以上となる確率（%）
+- **表層地盤**: 微地形分類、AVS30（30m平均S波速度）、地盤増幅率、揺れやすさ
+- **液状化リスク**: 微地形分類とAVS30に基づく簡易判定
+- **想定震度**: 確率データから「発生しうる震度レンジ」を推定
 
-**3a〜3eは可能な限り並行実行すること。**
+**3d出力**: Base64 data URI（標準出力）+ PNG画像ファイル
 
 ---
 

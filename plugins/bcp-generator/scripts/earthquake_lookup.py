@@ -8,6 +8,7 @@
 import json
 import sys
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 
 # J-SHIS API設定
 JSHIS_BASE = "https://www.j-shis.bosai.go.jp/map/api"
@@ -242,11 +243,12 @@ def analyze_earthquake_risk(lat, lng):
     """指定座標の地震リスク総合分析"""
     print(f"地点 ({lat}, {lng}) の地震リスク分析を開始...", file=sys.stderr)
 
-    # 1. 地震ハザード情報取得
-    hazard = get_earthquake_hazard(lat, lng)
-
-    # 2. 表層地盤情報取得
-    ground = get_surface_ground(lat, lng)
+    # 1+2. 地震ハザード情報と表層地盤情報を並列取得
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        hazard_future = executor.submit(get_earthquake_hazard, lat, lng)
+        ground_future = executor.submit(get_surface_ground, lat, lng)
+        hazard = hazard_future.result()
+        ground = ground_future.result()
 
     # 3. 液状化リスク判定
     liquefaction = assess_liquefaction(ground)

@@ -7,10 +7,12 @@ BCP文書のPDFに埋め込むための画像として使用。
 """
 
 import argparse
+import base64
 import io
 import math
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 try:
     from PIL import Image, ImageDraw, ImageFont
@@ -209,30 +211,88 @@ def draw_attribution(img):
 
 
 def generate_hazard_map(lat, lng, output_path, zoom=14):
-    """ハザードマップ画像を生成してPNGで保存"""
+    """ハザードマップ画像を生成してPNGで保存（全タイル並列取得）"""
     print(f"ハザードマップ画像を生成中 ({lat}, {lng})...", file=sys.stderr)
 
-    # 1. 背景地図（国土地理院 標準地図）
-    print("  背景地図を取得中...", file=sys.stderr)
-    base_img = download_tile_grid(lat, lng, zoom, GSI_STD_URL)
-    base_img = base_img.convert("RGBA")
+    cx, cy = latlng_to_tile(lat, lng, zoom)
 
-    # 2. ハザードレイヤー重ね合わせ
-    result = overlay_hazard_layers(base_img, lat, lng, zoom)
+    # 1. 全タイルURL収集 (背景9 + ハザード4層×9 = 45枚)
+    tile_requests = []  # (layer_key, dx, dy, url)
+    for dy in range(-1, 2):
+        for dx in range(-1, 2):
+            tx, ty = cx + dx, cy + dy
+            tile_requests.append(("base", dx, dy, GSI_STD_URL.format(z=zoom, x=tx, y=ty)))
+            for layer_key, layer_info in HAZARD_LAYERS.items():
+                tile_requests.append((layer_key, dx, dy, layer_info["url"].format(z=zoom, x=tx, y=ty)))
 
-    # 3. マーカー描画
+    print(f"  全{len(tile_requests)}タイルを並列取得中...", file=sys.stderr)
+
+    # 2. ThreadPoolExecutorで一括並列取得
+    tile_data = {}
+    with ThreadPoolExecutor(max_workers=16) as executor:
+        future_map = {
+            executor.submit(fetch_tile, url): (key, dx, dy)
+            for key, dx, dy, url in tile_requests
+        }
+        for future in as_completed(future_map):
+            key_info = future_map[future]
+            try:
+                tile_data[key_info] = future.result()
+            except Exception:
+                tile_data[key_info] = None
+
+    # 3. 背景画像を組み立て
+    base_img = Image.new("RGBA", (TILE_SIZE * GRID_SIZE, TILE_SIZE * GRID_SIZE), (0, 0, 0, 0))
+    for dy in range(-1, 2):
+        for dx in range(-1, 2):
+            data = tile_data.get(("base", dx, dy))
+            if data:
+                try:
+                    tile_img = Image.open(io.BytesIO(data)).convert("RGBA")
+                    base_img.paste(tile_img, ((dx + 1) * TILE_SIZE, (dy + 1) * TILE_SIZE))
+                except Exception:
+                    pass
+
+    # 4. ハザードレイヤー重ね合わせ（タイルデータは取得済み、組み立てのみ）
+    result = base_img
+    for layer_key, layer_info in HAZARD_LAYERS.items():
+        print(f"  {layer_info['name']}を重ね合わせ中...", file=sys.stderr)
+        grid = Image.new("RGBA", (TILE_SIZE * GRID_SIZE, TILE_SIZE * GRID_SIZE), (0, 0, 0, 0))
+        for dy in range(-1, 2):
+            for dx in range(-1, 2):
+                data = tile_data.get((layer_key, dx, dy))
+                if data:
+                    try:
+                        tile_img = Image.open(io.BytesIO(data)).convert("RGBA")
+                        grid.paste(tile_img, ((dx + 1) * TILE_SIZE, (dy + 1) * TILE_SIZE))
+                    except Exception:
+                        pass
+
+        r_band, g_band, b_band, a_band = grid.split()
+        a_band = a_band.point(lambda a: min(a, HAZARD_ALPHA) if a > 30 else 0)
+        grid = Image.merge("RGBA", (r_band, g_band, b_band, a_band))
+        result = Image.alpha_composite(result, grid)
+
+    # 5. マーカー描画
     result = draw_marker(result, lat, lng, zoom)
 
-    # 4. 凡例描画
+    # 6. 凡例描画
     result = draw_legend(result)
 
-    # 5. 出典テキスト
+    # 7. 出典テキスト
     result = draw_attribution(result)
 
-    # 6. 保存
+    # 8. 保存
     result.save(output_path, "PNG", optimize=True)
     print(f"ハザードマップ画像を保存: {output_path}", file=sys.stderr)
     return output_path
+
+
+def png_to_base64_data_uri(png_path):
+    """PNGファイルをBase64 data URIに変換"""
+    with open(png_path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
 
 
 def main():
@@ -241,10 +301,14 @@ def main():
     parser.add_argument("--lng", type=float, required=True, help="経度")
     parser.add_argument("--output", type=str, required=True, help="出力PNGファイルパス")
     parser.add_argument("--zoom", type=int, default=14, help="ズームレベル（デフォルト: 14）")
+    parser.add_argument("--base64", action="store_true", help="Base64 data URIも標準出力に出力")
     args = parser.parse_args()
 
     output = generate_hazard_map(args.lat, args.lng, args.output, args.zoom)
-    print(output)
+    if args.base64:
+        print(png_to_base64_data_uri(args.output))
+    else:
+        print(output)
 
 
 if __name__ == "__main__":
