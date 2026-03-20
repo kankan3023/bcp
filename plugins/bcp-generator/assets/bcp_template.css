@@ -89,6 +89,112 @@ body {
     margin-top: 10mm;
 }
 
+/* ===== エグゼクティブサマリー ===== */
+.executive-summary {
+    page-break-after: always;
+}
+
+.executive-summary h2 {
+    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
+    font-size: 16pt;
+    color: #1a3a5c;
+    border-bottom: 2px solid #1a3a5c;
+    padding-bottom: 3mm;
+    margin-bottom: 6mm;
+}
+
+.summary-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4mm;
+    margin-bottom: 5mm;
+}
+
+.summary-card {
+    flex: 1 1 45%;
+    border: 1px solid #d1d5db;
+    border-radius: 2mm;
+    padding: 4mm 5mm;
+    page-break-inside: avoid;
+}
+
+.summary-card h3 {
+    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
+    font-size: 10.5pt;
+    color: white;
+    margin: -4mm -5mm 3mm -5mm;
+    padding: 2.5mm 5mm;
+    border-radius: 2mm 2mm 0 0;
+    border-left: none;
+    padding-left: 5mm;
+}
+
+.summary-card.risks h3 {
+    background-color: #dc2626;
+}
+
+.summary-card.operations h3 {
+    background-color: #2563eb;
+}
+
+.summary-card.actions h3 {
+    background-color: #059669;
+}
+
+.summary-card.overview h3 {
+    background-color: #6b7280;
+}
+
+.summary-card ol, .summary-card ul {
+    margin: 1mm 0 1mm 5mm;
+    font-size: 9.5pt;
+    line-height: 1.6;
+}
+
+.summary-card li {
+    margin-bottom: 1.5mm;
+}
+
+.summary-card .risk-tag {
+    display: inline-block;
+    font-size: 8pt;
+    padding: 0.5mm 2mm;
+    border-radius: 1mm;
+    font-weight: 600;
+    margin-left: 1mm;
+    vertical-align: middle;
+}
+
+.risk-tag-critical {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.risk-tag-high {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.risk-tag-medium {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.summary-card p {
+    font-size: 9.5pt;
+    line-height: 1.6;
+    margin-bottom: 1.5mm;
+}
+
+.summary-footer {
+    font-size: 8.5pt;
+    color: #666;
+    text-align: center;
+    margin-top: 4mm;
+    padding-top: 3mm;
+    border-top: 1px solid #e5e7eb;
+}
+
 /* ===== 目次 ===== */
 .toc-page {
     page-break-after: always;

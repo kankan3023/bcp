@@ -7,6 +7,7 @@ kitaku-routeプロジェクトから流用・汎用化。
 import json
 import re
 import sys
+import unicodedata
 import urllib.request
 import urllib.parse
 
@@ -110,6 +111,9 @@ def geocode_postalcode(zipcode: str) -> dict | None:
 
 def geocode(query: str) -> dict | None:
     """住所・場所名・郵便番号から座標を取得する（多段フォールバック）"""
+    # 全角数字・カナ等を半角に正規化（"１丁目" → "1丁目"）
+    query = unicodedata.normalize("NFKC", query)
+
     # 郵便番号の場合は専用処理
     zipcode = _is_postalcode(query)
     if zipcode:

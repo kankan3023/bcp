@@ -235,6 +235,7 @@ Step 6のHTML生成時に `<img>` タグで埋め込む。
 
 2. **セクション構成** (全セクション必須):
    - 表紙（class="cover-page"）
+   - エグゼクティブサマリー（class="executive-summary"）
    - 目次（class="toc-page"）
    - 会社概要・事業概要
    - BCP基本方針
@@ -246,30 +247,78 @@ Step 6のHTML生成時に `<img>` タグで埋め込む。
    - 備蓄・資源計画（class="checklist"でチェックリスト）
    - 付録（出典、免責事項）
 
-3. **業種×地域リスクに基づく具体的対策を記述すること**。汎用的な文言だけではNG。
+3. **エグゼクティブサマリー**: 表紙の直後に `<div class="executive-summary">` で1ページのサマリーを生成する。経営者が最初の1ページで要点を掴めることが目的。以下の4カードで構成:
+    ```html
+    <div class="executive-summary">
+        <h2>エグゼクティブサマリー</h2>
+        <div class="summary-grid">
+            <div class="summary-card overview">
+                <h3>企業概要</h3>
+                <p><strong>{会社名}</strong>（{業種}）</p>
+                <p>所在地: {所在地}</p>
+                <p>従業員数: {従業員数 or "要確認"}</p>
+            </div>
+            <div class="summary-card risks">
+                <h3>主要リスク TOP3</h3>
+                <ol>
+                    <li>{リスク1名} <span class="risk-tag risk-tag-critical">深刻</span><br>{根拠要約}</li>
+                    <li>{リスク2名} <span class="risk-tag risk-tag-high">高</span><br>{根拠要約}</li>
+                    <li>{リスク3名} <span class="risk-tag risk-tag-medium">中</span><br>{根拠要約}</li>
+                </ol>
+            </div>
+            <div class="summary-card operations">
+                <h3>重要業務と目標復旧時間</h3>
+                <ol>
+                    <li><strong>{業務1}</strong> — RTO: {時間}</li>
+                    <li><strong>{業務2}</strong> — RTO: {時間}</li>
+                    <li><strong>{業務3}</strong> — RTO: {時間}</li>
+                </ol>
+            </div>
+            <div class="summary-card actions">
+                <h3>最優先アクション</h3>
+                <ol>
+                    <li>{最も重要な対策1}</li>
+                    <li>{最も重要な対策2}</li>
+                    <li>{最も重要な対策3}</li>
+                </ol>
+            </div>
+        </div>
+        <p class="summary-footer">※ 詳細は各セクションを参照してください。本文書は公開情報とAI分析に基づく参考資料です。</p>
+    </div>
+    ```
+    - risk-tagのクラスはリスクの深刻度に応じて `risk-tag-critical`/`risk-tag-high`/`risk-tag-medium` を使い分ける
+    - 各カードの内容はStep 4・5の判断結果をそのまま反映する
+
+4. **業種×地域リスクに基づく具体的対策を記述すること**。汎用的な文言だけではNG。
    例: 「河川近接の食品製造業」なら「冷蔵設備の非常用電源確保（UPS + 発電機）」等
 
-4. **`[要記入]` 欄**: 代表者名、BCP責任者、緊急連絡先の電話番号は `<span class="fill-in-inline">[要記入]</span>` とする
+5. **`[要記入]` 欄**: 代表者名、BCP責任者、緊急連絡先の電話番号は `<span class="fill-in-inline">[要記入]</span>` とする
 
-5. **リスクマトリクス**: `<div class="risk-matrix">` 内にtableで作成。セルにclass="risk-cell-critical/high/medium/low"を適用
+6. **リスクマトリクス**: `<div class="risk-matrix">` 内にtableで作成。セルにclass="risk-cell-critical/high/medium/low"を適用
 
-6. **AI分析セクション**: Claudeが推論した箇所は `<div class="ai-analysis">` で囲む
+7. **AI分析セクション**: Claudeが推論した箇所は `<div class="ai-analysis">` で囲む
 
-7. **免責事項**: `${CLAUDE_SKILL_DIR}/../references/sme-bcp-guidelines.md` の免責テンプレートを使用
+8. **免責事項**: `${CLAUDE_SKILL_DIR}/../references/sme-bcp-guidelines.md` の免責テンプレートを使用
 
-8. **HTMLの文字コード**: `<meta charset="UTF-8">` を必ず含む
+9. **HTMLの文字コード**: `<meta charset="UTF-8">` を必ず含む
 
-9. **改ページ制御**: 空の `<div class="page-break"></div>` は**絶対に使わないこと**（白紙ページが生成される）。セクション見出し `<h2 class="section-title">` に `page-break-before: always` がCSS側で設定済みなので、h2タグを置くだけで自動改ページされる
+10. **改ページ制御**: 空の `<div class="page-break"></div>` は**絶対に使わないこと**（白紙ページが生成される）。セクション見出し `<h2 class="section-title">` に `page-break-before: always` がCSS側で設定済みなので、h2タグを置くだけで自動改ページされる
 
-10. **ハザードマップ画像の埋め込み**: リスク分析セクションに Step 3d で生成した画像を挿入する:
+11. **ハザードマップ画像の埋め込み**: リスク分析セクションに Step 3d で生成した画像を挿入する。**埋め込み前に `ls /tmp/bcp_hazard_map.png` で画像ファイルの存在を確認すること。** 存在しない場合は `<img>` タグを出力せず、代わりに「※ ハザードマップ画像は生成できませんでした。上記のハザード分析データを参照してください。」というテキストを表示する。
     ```html
+    <!-- 画像が存在する場合 -->
     <div class="hazard-map-container">
         <img src="/tmp/bcp_hazard_map.png" alt="ハザードマップ">
         <p class="hazard-map-caption">図: 対象地点周辺のハザードマップ（赤丸が所在地）</p>
     </div>
+
+    <!-- 画像が存在しない場合 -->
+    <div class="hazard-map-container">
+        <p class="hazard-map-caption">※ ハザードマップ画像は生成できませんでした。上記のハザード分析データを参照してください。</p>
+    </div>
     ```
 
-11. **自治体防災リンク集**: 付録セクションに Step 3c で収集した自治体の防災関連リンクを掲載する:
+12. **自治体防災リンク集**: 付録セクションに Step 3c で収集した自治体の防災関連リンクを掲載する:
     ```html
     <h3>自治体防災情報リンク</h3>
     <div class="reference-links">
@@ -282,7 +331,7 @@ Step 6のHTML生成時に `<img>` タグで埋め込む。
     </div>
     ```
 
-12. **業界BCP参考資料**: 付録セクションに Step 3e で収集した業界団体のBCP関連情報を掲載する:
+13. **業界BCP参考資料**: 付録セクションに Step 3e で収集した業界団体のBCP関連情報を掲載する:
     ```html
     <h3>業界BCP参考資料</h3>
     <div class="reference-links">
@@ -305,11 +354,16 @@ Write /tmp/bcp_output.html に完全なHTMLを出力
 
 ### 7a. PDF変換
 
+会社名からファイル名安全な文字列を生成する:
+- パス区切り文字（`/` `\`）、制御文字、`..` を除去する
+- 空白は `_` に置換する
+- サニタイズ後が空文字列なら `company` を使用する
+
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/../scripts/html_to_pdf.py /tmp/bcp_output.html /tmp/BCP_{会社名}_{YYYYMMDD}.pdf
+python3 ${CLAUDE_SKILL_DIR}/../scripts/html_to_pdf.py /tmp/bcp_output.html "/tmp/BCP_{サニタイズ済み会社名}_{YYYYMMDD}.pdf"
 ```
 
-会社名は英数字・ひらがな・カタカナ・漢字可。日付は生成日。
+日付は生成日（例: 20260320）。
 
 ### 7b. ユーザーへの報告
 
