@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-BCP（事業継続計画）自動生成スキル。企業WebサイトのURLを入力するだけで、業務分析→ハザードマップ調査→BCP文書生成をワンストップで実行し、PDFとして出力する。
+BCP（事業継続計画）自動生成スキル。企業WebサイトのURL**または社名**を入力するだけで、業務分析→ハザードマップ調査→BCP文書生成をワンストップで実行し、PDFとして出力する。
 
 ## Architecture
 
@@ -41,6 +41,9 @@ python3 plugins/bcp-generator/scripts/hazard_lookup.py --lat 35.66 --lng 139.70 
 # 地震リスク分析テスト（J-SHIS API）
 python3 plugins/bcp-generator/scripts/earthquake_lookup.py --lat 35.66 --lng 139.70 --output /tmp/test_earthquake.json
 
+# ハザードマップ画像生成テスト
+python3 plugins/bcp-generator/scripts/generate_hazard_map.py --lat 35.66 --lng 139.70 --output /tmp/test_hazard_map.png
+
 # HTML→PDF変換
 python3 plugins/bcp-generator/scripts/html_to_pdf.py /tmp/bcp_output.html /tmp/output.pdf
 ```
@@ -48,10 +51,10 @@ python3 plugins/bcp-generator/scripts/html_to_pdf.py /tmp/bcp_output.html /tmp/o
 ## Skill Usage
 
 ```
-/bcp-generator:bcp <企業WebサイトURL>
+/bcp-generator:bcp <企業WebサイトURL または 社名>
 ```
 
-URLを入力すると自律的に7ステップを完走してBCP PDFを生成する。ユーザーへの追加質問は原則ゼロ。
+URLまたは社名を入力すると自律的に7ステップを完走してBCP PDFを生成する。社名入力時は自動でWebSearch→候補が複数あればユーザーに選択を求める。
 
 ### プラグインインストール方法（利用者向け）
 

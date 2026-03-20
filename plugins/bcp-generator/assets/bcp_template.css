@@ -1,5 +1,7 @@
 /* BCP文書 PDF用スタイルシート */
 /* WeasyPrintで使用。A4縦向き、印刷対応。 */
+/* フォント戦略: 本文=明朝体、見出し=ゴシック体。各OSネイティブフォントにフォールバック。
+   Mac: ヒラギノ明朝/角ゴ, Windows: 游明朝/BIZ UDゴシック, Linux: Noto Serif/Sans CJK JP */
 
 @page {
     size: A4;
@@ -32,9 +34,9 @@
 }
 
 body {
-    font-family: "Noto Sans JP", "Hiragino Sans", "Meiryo", sans-serif;
+    font-family: "Noto Serif CJK JP", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
     font-size: 10.5pt;
-    line-height: 1.7;
+    line-height: 1.8;
     color: #1a1a1a;
 }
 
@@ -51,6 +53,7 @@ body {
 }
 
 .cover-page h1 {
+    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     font-size: 28pt;
     font-weight: 700;
     color: #1a3a5c;
@@ -59,6 +62,7 @@ body {
 }
 
 .cover-page .company-name {
+    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     font-size: 18pt;
     color: #2c5282;
     margin-bottom: 15mm;
@@ -91,6 +95,7 @@ body {
 }
 
 .toc-page h2 {
+    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     font-size: 16pt;
     color: #1a3a5c;
     border-bottom: 2px solid #1a3a5c;
@@ -132,6 +137,7 @@ body {
 }
 
 h2.section-title {
+    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     font-size: 16pt;
     color: #1a3a5c;
     border-bottom: 2.5px solid #1a3a5c;
@@ -143,6 +149,7 @@ h2.section-title {
 }
 
 h3 {
+    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     font-size: 13pt;
     color: #2c5282;
     margin-top: 8mm;
@@ -153,6 +160,7 @@ h3 {
 }
 
 h4 {
+    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     font-size: 11pt;
     color: #333;
     margin-top: 5mm;
@@ -182,6 +190,7 @@ th, td {
 }
 
 th {
+    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     background-color: #1a3a5c;
     color: white;
     font-weight: 600;
@@ -339,6 +348,40 @@ li {
     font-style: italic;
 }
 
+/* ===== 参考リンク集 ===== */
+.reference-links {
+    margin: 4mm 0;
+    padding: 4mm 5mm;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 2mm;
+}
+
+.reference-links ul {
+    margin: 2mm 0 2mm 6mm;
+}
+
+.reference-links li {
+    margin-bottom: 2mm;
+}
+
+.reference-links a {
+    color: #2563eb;
+    text-decoration: none;
+    border-bottom: 1px solid #93c5fd;
+}
+
+.reference-links a:hover {
+    color: #1d4ed8;
+}
+
+.reference-links .link-category {
+    font-weight: 600;
+    color: #334155;
+    margin-top: 3mm;
+    margin-bottom: 1mm;
+}
+
 /* ===== フッター/免責 ===== */
 .disclaimer {
     font-size: 8.5pt;
@@ -355,6 +398,25 @@ li {
 
 .no-break {
     page-break-inside: avoid;
+}
+
+/* ===== ハザードマップ画像 ===== */
+.hazard-map-container {
+    text-align: center;
+    margin: 5mm 0;
+    page-break-inside: avoid;
+}
+
+.hazard-map-container img {
+    max-width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 2mm;
+}
+
+.hazard-map-caption {
+    font-size: 8.5pt;
+    color: #666;
+    margin-top: 2mm;
 }
 
 /* ===== AI分析マーク ===== */
