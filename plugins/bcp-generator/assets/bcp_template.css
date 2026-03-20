@@ -285,6 +285,18 @@ table {
     border-collapse: collapse;
     margin: 4mm 0 6mm 0;
     font-size: 9.5pt;
+    page-break-inside: auto;
+}
+
+thead {
+    display: table-header-group;
+}
+
+tr {
+    page-break-inside: avoid;
+}
+
+table.no-break-table {
     page-break-inside: avoid;
 }
 

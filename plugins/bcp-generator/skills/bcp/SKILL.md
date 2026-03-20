@@ -314,6 +314,10 @@ python3 ${CLAUDE_SKILL_DIR}/../scripts/generate_hazard_map.py --lat {緯度} --l
 
 10. **改ページ制御**: 空の `<div class="page-break"></div>` は**絶対に使わないこと**（白紙ページが生成される）。セクション見出し `<h2 class="section-title">` に `page-break-before: always` がCSS側で設定済みなので、h2タグを置くだけで自動改ページされる
 
+14. **テーブルの改ページ制御**: テーブルはデフォルトでページ跨ぎを許可し、ヘッダー行（`<thead>`）が次ページでも繰り返される。テーブルには必ず `<thead>` と `<tbody>` を使うこと。
+    - **小さい表**（5行以下。連絡網、RTO表、企業概要など）: `<table class="no-break-table">` を使い、表全体を1ページに収める
+    - **大きい表**（6行以上。リスク分析、チェックリスト、対策一覧など）: classなしの `<table>` を使い、ページ跨ぎを許可する
+
 11. **ハザードマップ画像の埋め込み**: リスク分析セクションに Step 3d で取得したBase64 data URIを使って画像を埋め込む。**Step 3d の標準出力（`data:image/png;base64,...`）が取得できている場合のみ `<img>` タグを出力する。** 取得できていない場合は代替テキストを表示する。
     ```html
     <!-- Base64 data URIが取得できた場合 -->
