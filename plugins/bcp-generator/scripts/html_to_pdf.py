@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """HTML→PDF変換（WeasyPrintラッパー）"""
 
+import os
+import re
 import subprocess
 import sys
 
@@ -40,13 +42,37 @@ def convert_html_to_pdf(html_path: str, pdf_path: str) -> bool:
         return False
 
 
+def sanitize_pdf_path(pdf_path: str) -> str:
+    """PDFパスのファイル名部分をサニタイズしてパストラバーサルを防止する。
+
+    ディレクトリは /tmp 固定。ファイル名から危険な文字を除去する。
+    """
+    filename = os.path.basename(pdf_path)
+
+    # パス区切り文字・制御文字・".." を除去
+    filename = filename.replace("..", "")
+    filename = re.sub(r'[/\\<>:"|?*\x00-\x1f]', "", filename)
+    # 空白をアンダースコアに
+    filename = filename.replace(" ", "_").replace("　", "_")
+    # 先頭末尾のドットを除去（隠しファイル防止）
+    filename = filename.strip(".")
+    # サニタイズ後が空または拡張子のみなら安全なデフォルトを使用
+    if not filename or filename == ".pdf":
+        filename = "BCP_output.pdf"
+    # .pdf 拡張子を保証
+    if not filename.lower().endswith(".pdf"):
+        filename += ".pdf"
+
+    return os.path.join("/tmp", filename)
+
+
 def main():
     if len(sys.argv) < 3:
         print("使い方: html_to_pdf.py <入力HTML> <出力PDF>")
         sys.exit(1)
 
     html_path = sys.argv[1]
-    pdf_path = sys.argv[2]
+    pdf_path = sanitize_pdf_path(sys.argv[2])
 
     success = convert_html_to_pdf(html_path, pdf_path)
     if success:

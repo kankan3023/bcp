@@ -167,11 +167,13 @@ python3 ${CLAUDE_SKILL_DIR}/../scripts/earthquake_lookup.py --lat {緯度} --lng
 ### 3d. ハザードマップ画像生成
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/../scripts/generate_hazard_map.py --lat {緯度} --lng {経度} --output /tmp/bcp_hazard_map.png
+python3 ${CLAUDE_SKILL_DIR}/../scripts/generate_hazard_map.py --lat {緯度} --lng {経度} --output /tmp/bcp_hazard_map.png --base64
 ```
 
 国土地理院の標準地図に洪水・土砂・津波のハザードレイヤーを重ね合わせたPNG画像を生成する。
-Step 6のHTML生成時に `<img>` タグで埋め込む。
+`--base64` フラグにより、標準出力にBase64 data URI（`data:image/png;base64,...`）が出力される。
+**この出力文字列をそのまま保持し、Step 6のHTML生成時に `<img src="{data URI}">` として埋め込むこと。**
+これによりHTMLとPDFが画像を内包した自己完結ファイルになる。
 
 **3a〜3eは可能な限り並行実行すること。**
 
@@ -304,15 +306,15 @@ Step 6のHTML生成時に `<img>` タグで埋め込む。
 
 10. **改ページ制御**: 空の `<div class="page-break"></div>` は**絶対に使わないこと**（白紙ページが生成される）。セクション見出し `<h2 class="section-title">` に `page-break-before: always` がCSS側で設定済みなので、h2タグを置くだけで自動改ページされる
 
-11. **ハザードマップ画像の埋め込み**: リスク分析セクションに Step 3d で生成した画像を挿入する。**埋め込み前に `ls /tmp/bcp_hazard_map.png` で画像ファイルの存在を確認すること。** 存在しない場合は `<img>` タグを出力せず、代わりに「※ ハザードマップ画像は生成できませんでした。上記のハザード分析データを参照してください。」というテキストを表示する。
+11. **ハザードマップ画像の埋め込み**: リスク分析セクションに Step 3d で取得したBase64 data URIを使って画像を埋め込む。**Step 3d の標準出力（`data:image/png;base64,...`）が取得できている場合のみ `<img>` タグを出力する。** 取得できていない場合は代替テキストを表示する。
     ```html
-    <!-- 画像が存在する場合 -->
+    <!-- Base64 data URIが取得できた場合 -->
     <div class="hazard-map-container">
-        <img src="/tmp/bcp_hazard_map.png" alt="ハザードマップ">
+        <img src="{Step 3dで取得したdata URI文字列}" alt="ハザードマップ">
         <p class="hazard-map-caption">図: 対象地点周辺のハザードマップ（赤丸が所在地）</p>
     </div>
 
-    <!-- 画像が存在しない場合 -->
+    <!-- 取得できなかった場合 -->
     <div class="hazard-map-container">
         <p class="hazard-map-caption">※ ハザードマップ画像は生成できませんでした。上記のハザード分析データを参照してください。</p>
     </div>
@@ -354,16 +356,12 @@ Write /tmp/bcp_output.html に完全なHTMLを出力
 
 ### 7a. PDF変換
 
-会社名からファイル名安全な文字列を生成する:
-- パス区切り文字（`/` `\`）、制御文字、`..` を除去する
-- 空白は `_` に置換する
-- サニタイズ後が空文字列なら `company` を使用する
-
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/../scripts/html_to_pdf.py /tmp/bcp_output.html "/tmp/BCP_{サニタイズ済み会社名}_{YYYYMMDD}.pdf"
+python3 ${CLAUDE_SKILL_DIR}/../scripts/html_to_pdf.py /tmp/bcp_output.html "/tmp/BCP_{会社名}_{YYYYMMDD}.pdf"
 ```
 
 日付は生成日（例: 20260320）。
+ファイル名のサニタイズ（パストラバーサル防止・危険文字除去）は `html_to_pdf.py` 内で自動実行される。出力先は `/tmp` に固定される。
 
 ### 7b. ユーザーへの報告
 
