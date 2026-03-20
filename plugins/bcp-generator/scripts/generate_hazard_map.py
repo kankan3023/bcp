@@ -8,10 +8,14 @@ BCP文書のPDFに埋め込むための画像として使用。
 
 import argparse
 import base64
+import hashlib
 import io
+import json
 import math
 import os
 import sys
+import urllib.parse
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 try:
@@ -22,7 +26,7 @@ except ImportError:
 
 # 同一ディレクトリの hazard_lookup.py から関数・定数をインポート
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from hazard_lookup import latlng_to_tile, latlng_to_pixel_in_tile, fetch_tile, HAZARD_LAYERS
+from hazard_lookup import latlng_to_tile, latlng_to_pixel_in_tile, fetch_tile, HAZARD_LAYERS, TILE_CACHE_DIR
 
 # 国土地理院 標準地図タイル
 GSI_STD_URL = "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png"
@@ -66,6 +70,130 @@ def _find_cjk_font(size=12):
             except Exception:
                 continue
     return ImageFont.load_default()
+
+
+def tile_to_latlng(tile_x, tile_y, zoom):
+    """タイル座標→緯度経度（左上隅）。latlng_to_tileの逆関数。"""
+    n = 2 ** zoom
+    lng = tile_x / n * 360.0 - 180.0
+    lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * tile_y / n)))
+    lat = math.degrees(lat_rad)
+    return lat, lng
+
+
+def get_grid_bbox(lat, lng, zoom):
+    """3x3タイルグリッドのbbox (south, west, north, east) を返す。"""
+    cx, cy = latlng_to_tile(lat, lng, zoom)
+    north, west = tile_to_latlng(cx - 1, cy - 1, zoom)
+    south, east = tile_to_latlng(cx + 2, cy + 2, zoom)
+    return south, west, north, east
+
+
+def fetch_shelters(south, west, north, east):
+    """Overpass APIで避難所を検索。キャッシュ付き。失敗時は空リスト。"""
+    bbox_str = f"{south},{west},{north},{east}"
+    cache_key = "shelters_" + hashlib.md5(bbox_str.encode()).hexdigest()
+    cache_path = os.path.join(TILE_CACHE_DIR, cache_key)
+
+    # キャッシュ確認
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    query = f"""[out:json][timeout:15];
+(
+  node["emergency"="assembly_point"]({bbox_str});
+  way["emergency"="assembly_point"]({bbox_str});
+  node["amenity"="shelter"]({bbox_str});
+  way["amenity"="shelter"]({bbox_str});
+);
+out center 20;"""
+
+    try:
+        data = urllib.parse.urlencode({"data": query}).encode("utf-8")
+        req = urllib.request.Request(
+            "https://overpass-api.de/api/interpreter",
+            data=data,
+            headers={"User-Agent": "BCP-Generator/1.0"},
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        print(f"  避難所検索失敗（続行）: {e}", file=sys.stderr)
+        return []
+
+    shelters = []
+    for elem in result.get("elements", []):
+        lat_val = elem.get("lat") or elem.get("center", {}).get("lat")
+        lng_val = elem.get("lon") or elem.get("center", {}).get("lon")
+        if lat_val is None or lng_val is None:
+            continue
+        name = elem.get("tags", {}).get("name", "避難所")
+        shelters.append({"lat": float(lat_val), "lng": float(lng_val), "name": name})
+
+    # キャッシュ保存
+    try:
+        os.makedirs(TILE_CACHE_DIR, exist_ok=True)
+        with open(cache_path, "w") as f:
+            json.dump(shelters, f)
+    except Exception:
+        pass
+
+    return shelters
+
+
+def select_nearest_shelters(shelters, lat, lng, max_count=10):
+    """避難所を近い順にソートしてmax_count件返す。"""
+    def dist(s):
+        return (s["lat"] - lat) ** 2 + (s["lng"] - lng) ** 2
+    return sorted(shelters, key=dist)[:max_count]
+
+
+def latlng_to_grid_pixel(lat, lng, center_lat, center_lng, zoom):
+    """緯度経度を3x3グリッド画像上のピクセル座標に変換。"""
+    # 中心タイル
+    ccx, ccy = latlng_to_tile(center_lat, center_lng, zoom)
+    # 対象のタイル座標とタイル内ピクセル
+    tx, ty = latlng_to_tile(lat, lng, zoom)
+    px, py = latlng_to_pixel_in_tile(lat, lng, zoom)
+    # グリッド上のピクセル座標
+    gx = (tx - ccx + 1) * TILE_SIZE + px
+    gy = (ty - ccy + 1) * TILE_SIZE + py
+    return gx, gy
+
+
+def draw_shelter_markers(img, shelters, center_lat, center_lng, zoom):
+    """避難所を緑三角マーカーで描画。"""
+    result = img.copy()
+    draw = ImageDraw.Draw(result)
+
+    for s in shelters:
+        gx, gy = latlng_to_grid_pixel(s["lat"], s["lng"], center_lat, center_lng, zoom)
+
+        # 画像範囲外はスキップ
+        if gx < 0 or gx >= img.width or gy < 0 or gy >= img.height:
+            continue
+
+        # 上向き三角形（幅12px × 高10px）
+        half_w = 6
+        h = 10
+        top = (gx, gy - h // 2)
+        left = (gx - half_w, gy + h // 2)
+        right = (gx + half_w, gy + h // 2)
+
+        # 白縁
+        draw.polygon([top, left, right], outline=(255, 255, 255, 255))
+        # 緑塗り（日本の防災標識の緑）
+        draw.polygon([
+            (top[0], top[1] + 1),
+            (left[0] + 1, left[1] - 1),
+            (right[0] - 1, right[1] - 1),
+        ], fill=(0, 160, 80, 255))
+
+    return result
 
 
 def download_tile_grid(lat, lng, zoom, url_template):
@@ -140,7 +268,7 @@ def draw_marker(img, lat, lng, zoom):
     return result
 
 
-def draw_legend(img, has_any_risk=True):
+def draw_legend(img, has_any_risk=True, has_shelters=False):
     """右下に凡例を描画"""
     result = img.copy()
     draw = ImageDraw.Draw(result)
@@ -150,11 +278,12 @@ def draw_legend(img, has_any_risk=True):
 
     items = LEGEND_ITEMS if has_any_risk else [("リスク検出なし", (200, 200, 200, 255))]
 
-    # 凡例ボックスの寸法
+    # 凡例ボックスの寸法（避難所ありなら1行追加）
     item_h = 18
     padding = 8
     box_w = 160
-    box_h = padding * 2 + len(items) * item_h + 20  # +20 for title
+    extra_rows = 1 + (1 if has_shelters else 0)  # 対象地点 + 避難所
+    box_h = padding * 2 + len(items) * item_h + 20 + extra_rows * item_h
     x0 = img.width - box_w - 10
     y0 = img.height - box_h - 10
 
@@ -179,12 +308,22 @@ def draw_legend(img, has_any_risk=True):
         draw.text((x0 + padding + 20, iy), label,
                   fill=(30, 30, 30, 255), font=font_small)
 
-    # マーカー凡例
-    marker_y = y0 + box_h - item_h - 2
-    draw.ellipse([x0 + padding + 3, marker_y + 4, x0 + padding + 11, marker_y + 12],
+    # マーカー凡例（対象地点 - 赤丸）
+    marker_base_y = y0 + padding + 20 + len(items) * item_h
+    draw.ellipse([x0 + padding + 3, marker_base_y + 4, x0 + padding + 11, marker_base_y + 12],
                  fill=(220, 38, 38, 255))
-    draw.text((x0 + padding + 20, marker_y), "対象地点",
+    draw.text((x0 + padding + 20, marker_base_y), "対象地点",
               fill=(30, 30, 30, 255), font=font_small)
+
+    # 避難所凡例（緑三角）
+    if has_shelters:
+        shelter_y = marker_base_y + item_h
+        sx = x0 + padding + 7
+        sy = shelter_y + 3
+        draw.polygon([(sx, sy), (sx - 5, sy + 9), (sx + 5, sy + 9)],
+                     fill=(0, 160, 80, 255), outline=(255, 255, 255, 255))
+        draw.text((x0 + padding + 20, shelter_y), "避難所",
+                  fill=(30, 30, 30, 255), font=font_small)
 
     return result
 
@@ -210,7 +349,7 @@ def draw_attribution(img):
     return result
 
 
-def generate_hazard_map(lat, lng, output_path, zoom=14):
+def generate_hazard_map(lat, lng, output_path, zoom=14, show_shelters=True):
     """ハザードマップ画像を生成してPNGで保存（全タイル並列取得）"""
     print(f"ハザードマップ画像を生成中 ({lat}, {lng})...", file=sys.stderr)
 
@@ -227,19 +366,36 @@ def generate_hazard_map(lat, lng, output_path, zoom=14):
 
     print(f"  全{len(tile_requests)}タイルを並列取得中...", file=sys.stderr)
 
-    # 2. ThreadPoolExecutorで一括並列取得
+    # 2. ThreadPoolExecutorで一括並列取得（避難所検索も同時実行）
     tile_data = {}
+    shelter_future = None
     with ThreadPoolExecutor(max_workers=16) as executor:
         future_map = {
             executor.submit(fetch_tile, url): (key, dx, dy)
             for key, dx, dy, url in tile_requests
         }
+
+        # 避難所検索をタイル取得と並列実行
+        if show_shelters:
+            bbox = get_grid_bbox(lat, lng, zoom)
+            shelter_future = executor.submit(fetch_shelters, *bbox)
+
         for future in as_completed(future_map):
             key_info = future_map[future]
             try:
                 tile_data[key_info] = future.result()
             except Exception:
                 tile_data[key_info] = None
+
+    # 避難所データ取得
+    shelters = []
+    if shelter_future is not None:
+        try:
+            shelters = shelter_future.result()
+            shelters = select_nearest_shelters(shelters, lat, lng)
+            print(f"  避難所{len(shelters)}件検出", file=sys.stderr)
+        except Exception:
+            shelters = []
 
     # 3. 背景画像を組み立て
     base_img = Image.new("RGBA", (TILE_SIZE * GRID_SIZE, TILE_SIZE * GRID_SIZE), (0, 0, 0, 0))
@@ -276,8 +432,12 @@ def generate_hazard_map(lat, lng, output_path, zoom=14):
     # 5. マーカー描画
     result = draw_marker(result, lat, lng, zoom)
 
+    # 5.5. 避難所マーカー描画
+    if shelters:
+        result = draw_shelter_markers(result, shelters, lat, lng, zoom)
+
     # 6. 凡例描画
-    result = draw_legend(result)
+    result = draw_legend(result, has_shelters=len(shelters) > 0)
 
     # 7. 出典テキスト
     result = draw_attribution(result)
@@ -302,9 +462,11 @@ def main():
     parser.add_argument("--output", type=str, required=True, help="出力PNGファイルパス")
     parser.add_argument("--zoom", type=int, default=14, help="ズームレベル（デフォルト: 14）")
     parser.add_argument("--base64", action="store_true", help="Base64 data URIも標準出力に出力")
+    parser.add_argument("--no-shelters", action="store_true", help="避難所マーカーを非表示")
     args = parser.parse_args()
 
-    output = generate_hazard_map(args.lat, args.lng, args.output, args.zoom)
+    output = generate_hazard_map(args.lat, args.lng, args.output, args.zoom,
+                                 show_shelters=not args.no_shelters)
     if args.base64:
         print(png_to_base64_data_uri(args.output))
     else:
