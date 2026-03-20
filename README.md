@@ -26,7 +26,7 @@
 
 ```bash
 # 1. マーケットプレイスを追加
-claude plugin marketplace add kaede/bcp
+claude plugin marketplace add kankan3023/bcp
 
 # 2. プラグインをインストール
 claude plugin install bcp-generator@bcp-generator-marketplace
