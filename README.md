@@ -1,8 +1,37 @@
-# BCP自動生成スキル
+# BCP策定案 自動生成スキル
 
-企業WebサイトのURL**または社名**を入力するだけで、**BCP（事業継続計画）** を自動生成するClaude Codeスキルです。
+**社名を入れるだけで、その企業専用のBCP（事業継続計画）の策定案がPDFで出てくる** Claude Codeスキルです。
+
+BCP（事業継続計画）は、地震・洪水などの災害時に企業が事業を継続・早期復旧するための計画書です。策定には専門知識と多大な労力が必要で、中小企業の策定率はわずか17.1%にとどまっています（2025年 帝国データバンク調査）。このスキルは、公的ハザードデータ（J-SHIS地震・国土交通省洪水/土砂/津波）と業界BCP情報をAIが統合分析し、企業ごとにカスタマイズされたBCP策定案を自動生成します。
 
 > AGI Lab AIエージェント ハッカソン 2026 出展作品
+
+## クイックスタート
+
+> 前提: [Claude Code](https://claude.ai/code) + Python 3.10以上
+
+```bash
+# 1. マーケットプレイスを追加
+claude plugin marketplace add kankan3023/bcp
+
+# 2. プラグインをインストール
+claude plugin install bcp-generator@bcp-generator-marketplace
+
+# 3. Claude Codeを再起動して実行
+/bcp-generator:bcp トヨタ自動車
+```
+
+出力: `/tmp/BCP_{会社名}_{日付}.pdf`
+
+社名の代わりにURLでもOK:
+```bash
+/bcp-generator:bcp https://example-company.co.jp
+```
+
+依存パッケージが自動インストールされない場合:
+```bash
+pip install -r plugins/bcp-generator/requirements.txt
+```
 
 ## 特徴
 
@@ -14,45 +43,6 @@
 - **中小企業庁ガイドライン準拠**: BCPのセクション構成は公式指針に準拠
 - **PDF出力**: A4印刷対応、明朝＋ゴシックの二書体構成（Mac/Win/Linux対応フォールバック）
 - **追加質問ゼロで完走**: エラーが起きても自己回復して最後まで生成
-
-## インストール
-
-### 前提条件
-
-- [Claude Code](https://claude.ai/code) がインストール済み
-- Python 3.10以上
-
-### マーケットプレイスからインストール
-
-```bash
-# 1. マーケットプレイスを追加
-claude plugin marketplace add kankan3023/bcp
-
-# 2. プラグインをインストール
-claude plugin install bcp-generator@bcp-generator-marketplace
-
-# 3. Claude Codeを再起動
-```
-
-### 依存パッケージ（自動インストールされない場合）
-
-```bash
-pip install -r plugins/bcp-generator/requirements.txt
-```
-
-## 使い方
-
-Claude Code上で以下を実行:
-
-```bash
-# 社名で実行
-/bcp-generator:bcp トヨタ自動車
-
-# URLで実行
-/bcp-generator:bcp https://example-company.co.jp
-```
-
-出力: `/tmp/BCP_{会社名}_{日付}.pdf`
 
 ## 7ステップ自律ワークフロー
 
