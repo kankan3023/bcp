@@ -442,8 +442,10 @@ def generate_hazard_map(lat, lng, output_path, zoom=14, show_shelters=True):
     # 7. 出典テキスト
     result = draw_attribution(result)
 
-    # 8. 保存
-    result.save(output_path, "PNG", optimize=True)
+    # 8. RGBA→RGB変換（白背景）して保存。ファイルサイズ削減＋API互換性向上
+    rgb_img = Image.new("RGB", result.size, (255, 255, 255))
+    rgb_img.paste(result, mask=result.split()[3])
+    rgb_img.save(output_path, "PNG", optimize=True)
     print(f"ハザードマップ画像を保存: {output_path}", file=sys.stderr)
     return output_path
 
