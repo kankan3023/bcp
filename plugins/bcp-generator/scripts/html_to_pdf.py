@@ -6,6 +6,15 @@ import re
 import subprocess
 import sys
 
+# Google Fonts から Noto Sans JP / Noto Serif JP を取得する @import 宣言。
+# システムに日本語フォントがなくても WeasyPrint がネットワーク経由で解決する。
+GOOGLE_FONTS_IMPORT = (
+    '@import url("https://fonts.googleapis.com/css2?'
+    "family=Noto+Sans+JP:wght@400;700&"
+    "family=Noto+Serif+JP:wght@400;700&"
+    'display=swap");'
+)
+
 
 def ensure_weasyprint():
     """WeasyPrintがなければインストール"""
@@ -26,6 +35,11 @@ def ensure_weasyprint():
             return False
 
 
+def _inject_google_fonts(html_content: str) -> str:
+    """HTMLの最初の<style>タグにGoogle Fonts @importを注入する"""
+    return html_content.replace("<style>", f"<style>\n{GOOGLE_FONTS_IMPORT}\n", 1)
+
+
 def convert_html_to_pdf(html_path: str, pdf_path: str) -> bool:
     """HTMLファイルをPDFに変換"""
     if not ensure_weasyprint():
@@ -34,7 +48,12 @@ def convert_html_to_pdf(html_path: str, pdf_path: str) -> bool:
     from weasyprint import HTML
 
     try:
-        HTML(filename=html_path).write_pdf(pdf_path)
+        with open(html_path, "r", encoding="utf-8") as f:
+            html_content = f.read()
+
+        html_content = _inject_google_fonts(html_content)
+
+        HTML(string=html_content, base_url=os.path.dirname(os.path.abspath(html_path))).write_pdf(pdf_path)
         print(f"PDF生成完了: {pdf_path}", file=sys.stderr)
         return True
     except Exception as e:

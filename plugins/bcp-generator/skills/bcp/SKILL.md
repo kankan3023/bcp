@@ -3,7 +3,7 @@ name: bcp
 description: >
   企業WebサイトのURLまたは社名からBCP（事業継続計画）を自動生成するスキル。
   業務分析→ハザードマップ調査→リスク分析→BCP文書生成をワンストップで実行し、
-  PDFとして出力する。「BCP」「事業継続」「防災計画」などのキーワードで自動起動。
+  HTMLとして出力する。「BCP」「事業継続」「防災計画」などのキーワードで自動起動。
   「BCPを作成して」「事業継続計画を作って」「防災計画を生成して」「BCPを生成」
   「○○社のBCP」などの自然言語リクエストにも反応する。
 user-invocable: true
@@ -12,7 +12,7 @@ argument-hint: "<企業WebサイトURL または 社名>"
 
 # BCP自動生成スキル
 
-企業WebサイトのURL**または社名**からBCP（事業継続計画）を自動生成し、PDFとして出力します。
+企業WebサイトのURL**または社名**からBCP（事業継続計画）を自動生成し、HTMLとして出力します。
 
 ## スキルの動作
 
@@ -125,9 +125,9 @@ python3 ${CLAUDE_SKILL_DIR}/../scripts/generate_hazard_map.py --lat {緯度} --l
 ```
 
 3dは国土地理院の標準地図に洪水・土砂・津波のハザードレイヤーを重ね合わせたPNG画像を生成する。
-`--base64` フラグにより、標準出力にBase64 data URI（`data:image/png;base64,...`）が出力される。
-**この出力文字列をそのまま保持し、Step 6のHTML生成時に `<img src="{data URI}">` として埋め込むこと。**
-これによりHTMLとPDFが画像を内包した自己完結ファイルになる。
+`--base64` フラグにより、Base64 data URIが `/tmp/bcp_hazard_map.png.b64.txt` にファイル保存される（標準出力にはファイルパスのみ出力）。
+**⚠️ Base64ファイルは約1.2MBあるため、会話コンテキストには読み込まないこと。**
+Step 6のHTML生成時にPythonスクリプトでファイルから読み込んでHTMLに埋め込む（後述）。
 
 3aと3dはファイルキャッシュ（`/tmp/bcp_tile_cache/`）を共有し、タイルの二重取得を回避する。
 
@@ -318,15 +318,38 @@ python3 ${CLAUDE_SKILL_DIR}/../scripts/generate_hazard_map.py --lat {緯度} --l
     - **小さい表**（5行以下。連絡網、RTO表、企業概要など）: `<table class="no-break-table">` を使い、表全体を1ページに収める
     - **大きい表**（6行以上。リスク分析、チェックリスト、対策一覧など）: classなしの `<table>` を使い、ページ跨ぎを許可する
 
-11. **ハザードマップ画像の埋め込み**: リスク分析セクションに Step 3d で取得したBase64 data URIを使って画像を埋め込む。**Step 3d の標準出力（`data:image/png;base64,...`）が取得できている場合のみ `<img>` タグを出力する。** 取得できていない場合は代替テキストを表示する。
+11. **ハザードマップ画像の埋め込み**: HTML生成時にBase64ファイルを直接読み込まないこと（約1.2MBありコンテキストを圧迫する）。代わりに以下の2段階で埋め込む:
+
+    **Step 6a**: HTMLを生成する際、ハザードマップ部分にプレースホルダーを挿入する:
     ```html
-    <!-- Base64 data URIが取得できた場合 -->
     <div class="hazard-map-container">
-        <img src="{Step 3dで取得したdata URI文字列}" alt="ハザードマップ">
+        <img src="@@HAZARD_MAP_BASE64@@" alt="ハザードマップ">
         <p class="hazard-map-caption">図: 対象地点周辺のハザードマップ（赤丸が所在地）</p>
     </div>
+    ```
 
-    <!-- 取得できなかった場合 -->
+    **Step 6b**: HTMLファイル出力後、Bashで以下を実行してプレースホルダーをBase64 data URIに置換する:
+    ```bash
+    python3 -c "
+    import sys
+    b64_path = '/tmp/bcp_hazard_map.png.b64.txt'
+    html_path = '/tmp/bcp_output.html'
+    try:
+        with open(b64_path) as f:
+            data_uri = f.read().strip()
+        with open(html_path) as f:
+            html = f.read()
+        html = html.replace('@@HAZARD_MAP_BASE64@@', data_uri)
+        with open(html_path, 'w') as f:
+            f.write(html)
+        print('ハザードマップ画像を埋め込みました')
+    except FileNotFoundError:
+        print('Base64ファイルが見つかりません。画像なしで続行します', file=sys.stderr)
+    "
+    ```
+
+    `/tmp/bcp_hazard_map.png.b64.txt` が存在しない場合（Step 3d失敗時）は、プレースホルダーの代わりに代替テキストを入れておく:
+    ```html
     <div class="hazard-map-container">
         <p class="hazard-map-caption">※ ハザードマップ画像は生成できませんでした。上記のハザード分析データを参照してください。</p>
     </div>
@@ -364,26 +387,31 @@ Write /tmp/bcp_output.html に完全なHTMLを出力
 
 ---
 
-## Step 7: PDF生成＋結果報告
+## Step 7: ブラウザ表示＋結果報告
 
-### 7a. PDF変換
+Step 6で `/tmp/bcp_output.html` に出力したHTMLが成果物。
+ブラウザで開くだけで完全なBCP文書として閲覧可能。
+印刷対応CSS付きのため、ブラウザの「印刷」（Cmd+P / Ctrl+P）→「PDFとして保存」で高品質なPDFも作成できる。
+
+### 7a. HTMLをブラウザで自動表示
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/../scripts/html_to_pdf.py /tmp/bcp_output.html "/tmp/BCP_{会社名}_{YYYYMMDD}.pdf"
+python3 -c "import webbrowser; webbrowser.open('file:///tmp/bcp_output.html')"
 ```
 
-日付は生成日（例: 20260320）。
-ファイル名のサニタイズ（パストラバーサル防止・危険文字除去）は `html_to_pdf.py` 内で自動実行される。出力先は `/tmp` に固定される。
+※ ブラウザが開けない環境でもエラーにはならない。失敗した場合はファイルパスを報告して続行する。
 
 ### 7b. ユーザーへの報告
 
-PDF生成完了後、以下をユーザーに報告:
+以下をユーザーに報告:
 
 ```
 ## BCP生成完了
 
 **対象企業**: {会社名}
-**出力ファイル**: /tmp/BCP_{会社名}_{YYYYMMDD}.pdf
+**出力ファイル**: `/tmp/bcp_output.html`（ブラウザで開けます）
+
+> PDF化する場合は、ブラウザで上記HTMLを開き「印刷」→「PDFとして保存」を使ってください。
 
 ### リスク分析サマリー
 1. **{リスク1}**: {根拠の要約}
@@ -412,8 +440,6 @@ PDF生成完了後、以下をユーザーに報告:
 | 住所不明 | WebSearch追加検索 → 地域推定 | なし（`[要確認]`付記） |
 | ジオコーディング失敗 | 都道府県レベルで続行 | なし |
 | ハザードタイル取得失敗 | WebSearch結果のみで分析 | なし |
-| WeasyPrint未インストール | スクリプト内で自動pip install | なし |
-| PDF変換失敗 | HTMLファイルのパスを報告して続行 | なし |
 | **全情報源が失敗** | 業種と所在地を1回聞いて汎用BCP生成 | **1回のみ** |
 
 **原則: ユーザーへの質問は入力時と社名の候補選択のみ。以降は完走する。**

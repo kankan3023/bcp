@@ -461,14 +461,20 @@ def main():
     parser.add_argument("--lng", type=float, required=True, help="経度")
     parser.add_argument("--output", type=str, required=True, help="出力PNGファイルパス")
     parser.add_argument("--zoom", type=int, default=14, help="ズームレベル（デフォルト: 14）")
-    parser.add_argument("--base64", action="store_true", help="Base64 data URIも標準出力に出力")
+    parser.add_argument("--base64", action="store_true",
+                        help="Base64 data URIをファイルに書き出す（{output}.b64.txt）。stdoutにはファイルパスを出力")
     parser.add_argument("--no-shelters", action="store_true", help="避難所マーカーを非表示")
     args = parser.parse_args()
 
     output = generate_hazard_map(args.lat, args.lng, args.output, args.zoom,
                                  show_shelters=not args.no_shelters)
     if args.base64:
-        print(png_to_base64_data_uri(args.output))
+        b64_path = args.output + ".b64.txt"
+        data_uri = png_to_base64_data_uri(args.output)
+        with open(b64_path, "w") as f:
+            f.write(data_uri)
+        print(f"Base64 data URI saved to: {b64_path}", file=sys.stderr)
+        print(b64_path)
     else:
         print(output)
 

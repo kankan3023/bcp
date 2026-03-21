@@ -1,2 +1,1 @@
-weasyprint>=60.0
 Pillow>=10.0

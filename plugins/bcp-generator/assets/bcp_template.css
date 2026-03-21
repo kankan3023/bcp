@@ -1,7 +1,9 @@
-/* BCP文書 PDF用スタイルシート */
-/* WeasyPrintで使用。A4縦向き、印刷対応。 */
-/* フォント戦略: 本文=明朝体、見出し=ゴシック体。各OSネイティブフォントにフォールバック。
-   Mac: ヒラギノ明朝/角ゴ, Windows: 游明朝/BIZ UDゴシック, Linux: Noto Serif/Sans CJK JP */
+/* BCP文書スタイルシート */
+/* ブラウザ表示・印刷（Cmd+P → PDF保存）対応。A4縦向き。 */
+/* フォント戦略: 本文=明朝体、見出し=ゴシック体。多段フォールバックで全OS対応。
+   1. Noto CJK（Linux systemフォント） → 2. Noto JP（Google Fontsで自動取得） →
+   3. ヒラギノ（macOS） → 4. 游/BIZ UD（Windows） → 5. 汎用ファミリ
+   ※ Google Fonts @import は html_to_pdf.py が自動注入 */
 
 @page {
     size: A4;
@@ -34,7 +36,7 @@
 }
 
 body {
-    font-family: "Noto Serif CJK JP", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
+    font-family: "Noto Serif CJK JP", "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
     font-size: 10.5pt;
     line-height: 1.8;
     color: #1a1a1a;
@@ -53,7 +55,7 @@ body {
 }
 
 .cover-page h1 {
-    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
+    font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     font-size: 28pt;
     font-weight: 700;
     color: #1a3a5c;
@@ -62,7 +64,7 @@ body {
 }
 
 .cover-page .company-name {
-    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
+    font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     font-size: 18pt;
     color: #2c5282;
     margin-bottom: 15mm;
@@ -95,7 +97,7 @@ body {
 }
 
 .executive-summary h2 {
-    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
+    font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     font-size: 16pt;
     color: #1a3a5c;
     border-bottom: 2px solid #1a3a5c;
@@ -119,7 +121,7 @@ body {
 }
 
 .summary-card h3 {
-    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
+    font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     font-size: 10.5pt;
     color: white;
     margin: -4mm -5mm 3mm -5mm;
@@ -201,7 +203,7 @@ body {
 }
 
 .toc-page h2 {
-    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
+    font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     font-size: 16pt;
     color: #1a3a5c;
     border-bottom: 2px solid #1a3a5c;
@@ -243,7 +245,7 @@ body {
 }
 
 h2.section-title {
-    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
+    font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     font-size: 16pt;
     color: #1a3a5c;
     border-bottom: 2.5px solid #1a3a5c;
@@ -255,7 +257,7 @@ h2.section-title {
 }
 
 h3 {
-    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
+    font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     font-size: 13pt;
     color: #2c5282;
     margin-top: 8mm;
@@ -266,7 +268,7 @@ h3 {
 }
 
 h4 {
-    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
+    font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     font-size: 11pt;
     color: #333;
     margin-top: 5mm;
@@ -308,7 +310,7 @@ th, td {
 }
 
 th {
-    font-family: "Noto Sans CJK JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
+    font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "BIZ UDGothic", "Meiryo", sans-serif;
     background-color: #1a3a5c;
     color: white;
     font-weight: 600;
@@ -558,9 +560,64 @@ li {
     font-weight: 600;
 }
 
-/* ===== 印刷対応 ===== */
+/* ===== ブラウザ印刷対応（Cmd+P / Ctrl+P → PDFとして保存） ===== */
 @media print {
     body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    @page {
+        size: A4;
+        margin: 20mm 18mm 25mm 18mm;
+    }
+
+    /* 改ページ制御 */
+    .cover-page {
+        page-break-after: always;
+    }
+
+    .executive-summary {
+        page-break-after: always;
+    }
+
+    .toc-page {
+        page-break-after: always;
+    }
+
+    h2.section-title {
+        page-break-before: always;
+        page-break-after: avoid;
+    }
+
+    h3, h4 {
+        page-break-after: avoid;
+    }
+
+    .no-break, .alert, .summary-card, .hazard-map-container {
+        page-break-inside: avoid;
+    }
+
+    tr {
+        page-break-inside: avoid;
+    }
+
+    table.no-break-table {
+        page-break-inside: avoid;
+    }
+
+    /* リンクURL自動表示を抑制 */
+    a[href]::after {
+        content: none !important;
+    }
+
+    /* 背景色を確実に印刷 */
+    th,
+    .risk-cell-critical, .risk-cell-high, .risk-cell-medium, .risk-cell-low,
+    .risk-high, .risk-medium, .risk-low,
+    .alert-danger, .alert-warning, .alert-info, .alert-success,
+    .summary-card h3,
+    .ai-analysis {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
