@@ -7,7 +7,7 @@ description: >
   「BCPを作成して」「事業継続計画を作って」「防災計画を生成して」「BCPを生成」
   「○○社のBCP」などの自然言語リクエストにも反応する。
 user-invocable: true
-argument-hint: "<企業WebサイトURL または 社名>"
+argument-hint: "<企業WebサイトURL または 企業名（市町村）>"
 ---
 
 # BCP自動生成スキル
