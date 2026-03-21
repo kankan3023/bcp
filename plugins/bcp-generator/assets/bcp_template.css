@@ -622,3 +622,45 @@ li {
         print-color-adjust: exact;
     }
 }
+
+/* ===== 画面表示用（ブラウザ閲覧時のみ適用） ===== */
+@media screen {
+    body {
+        font-size: 12pt;
+        max-width: 210mm;
+        margin: 0 auto;
+        padding: 20mm 15mm;
+    }
+
+    table {
+        font-size: 11pt;
+    }
+
+    th {
+        font-size: 10.5pt;
+    }
+
+    .summary-card ol, .summary-card ul {
+        font-size: 11pt;
+    }
+
+    .summary-card p {
+        font-size: 11pt;
+    }
+
+    .summary-footer {
+        font-size: 10pt;
+    }
+
+    .toc-list .toc-level2 {
+        font-size: 11pt;
+    }
+
+    .disclaimer {
+        font-size: 10pt;
+    }
+
+    .hazard-map-caption {
+        font-size: 10pt;
+    }
+}
